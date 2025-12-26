@@ -1,0 +1,12 @@
+[project]
+name = "ai-chat-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.127.0",
+    "google-genai>=1.47.0",
+    "sqlalchemy>=2.0.45",
+    "uvicorn>=0.39.0",
+]

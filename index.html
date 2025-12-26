@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat API | Next Gen Chat</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f4ff',
+                            100: '#d9e2ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .message-user {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        .message-bot {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-slate-200 h-screen flex overflow-hidden">
+
+    <!-- Sidebar (History) -->
+    <aside class="w-72 glass border-r border-white/5 flex-col hidden md:flex">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i class="fas fa-bolt text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight">AI Chat API</h1>
+            </div>
+            
+            <button onclick="window.location.reload()" class="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center space-x-3 mb-6">
+                <i class="fas fa-plus text-xs"></i>
+                <span class="text-sm font-medium">Новый чат</span>
+            </button>
+
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">История</div>
+            <div id="history-list" class="space-y-1 overflow-y-auto max-h-[calc(100vh-300px)] pr-2">
+                <!-- History items -->
+            </div>
+        </div>
+        
+        <div class="mt-auto p-6 border-t border-white/5">
+            <div class="flex items-center space-x-3 opacity-60">
+                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                    <i class="fas fa-user text-xs"></i>
+                </div>
+                <span class="text-sm">User</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-800/20 via-transparent to-transparent">
+        
+        <!-- Top Header (Mobile) -->
+        <header class="md:hidden glass p-4 flex justify-between items-center z-20">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
+                    <i class="fas fa-bolt text-white text-xs"></i>
+                </div>
+                <span class="font-bold">AI Chat API</span>
+            </div>
+            <button class="text-slate-400"><i class="fas fa-bars"></i></button>
+        </header>
+
+        <!-- Chat Container -->
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+            <!-- Welcome View -->
+            <div id="welcome-view" class="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-2xl mx-auto">
+                <div class="w-20 h-20 rounded-3xl bg-brand-600/10 flex items-center justify-center mb-4">
+                    <i class="fas fa-sparkles text-4xl text-brand-500"></i>
+                </div>
+                <h2 class="text-4xl font-bold text-white tracking-tight">Как я могу помочь?</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                    <button onclick="quickPrompt('Напиши код на Python для сортировки списка')" class="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-brand-500/50 hover:bg-white/10 transition-all text-left group">
+                        <p class="text-sm font-medium text-slate-300 group-hover:text-white">Напиши код</p>
+                        <p class="text-xs text-slate-500">для сортировки списка в Python</p>
+                    </button>
+                    <button onclick="quickPrompt('Придумай идею для стартапа в 2025')" class="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-brand-500/50 hover:bg-white/10 transition-all text-left group">
+                        <p class="text-sm font-medium text-slate-300 group-hover:text-white">Идея стартапа</p>
+                        <p class="text-xs text-slate-500">тренды на 2025 год</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typing-indicator" class="hidden px-8 py-2">
+            <div class="flex items-center space-x-3">
+                <div class="flex space-x-1">
+                    <div class="w-1.5 h-1.5 bg-brand-500 rounded-full animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 bg-brand-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-1.5 h-1.5 bg-brand-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                </div>
+                <span class="text-xs font-medium text-slate-500 italic">AI анализирует...</span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 md:p-8 pt-0">
+            <div class="max-w-4xl mx-auto relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-brand-600 to-purple-600 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000"></div>
+                <form id="chat-form" class="relative flex items-end space-x-2 glass rounded-2xl p-2 pl-4">
+                    <textarea 
+                        id="prompt-input" 
+                        rows="1"
+                        placeholder="Спросите что-нибудь..." 
+                        class="w-full bg-transparent border-none focus:ring-0 py-3 resize-none text-slate-200 placeholder-slate-500 max-h-48"
+                        required
+                    ></textarea>
+                    <button 
+                        type="submit" 
+                        id="send-btn"
+                        class="bg-brand-600 hover:bg-brand-500 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-1"
+                    >
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                </form>
+                <p class="text-[10px] text-center text-slate-600 mt-3 uppercase tracking-widest font-bold">Powered by Google Gemini Pro API</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const welcomeView = document.getElementById('welcome-view');
+        const historyList = document.getElementById('history-list');
+
+        // Configure marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+
+        // Auto-resize textarea
+        promptInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Handle Enter to send, Shift+Enter for new line
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        function appendMessage(role, content) {
+            if (welcomeView) welcomeView.style.display = 'none';
+            
+            const isUser = role === 'user';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6`;
+            
+            const icon = isUser ? 'fa-user' : 'fa-robot';
+            const iconBg = isUser ? 'bg-brand-600' : 'bg-slate-700';
+            
+            // Render content
+            let displayContent = content;
+            let contentClass = "text-sm md:text-[15px] leading-relaxed";
+            
+            if (isUser) {
+                contentClass += " whitespace-pre-wrap";
+            } else {
+                displayContent = marked.parse(content);
+                contentClass += " prose prose-invert prose-slate max-w-none prose-sm md:prose-base prose-pre:bg-[#1a1b26] prose-pre:border prose-pre:border-white/5 prose-code:text-brand-300 prose-headings:text-white prose-strong:text-white prose-a:text-brand-400";
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="flex ${isUser ? 'flex-row-reverse' : 'flex-row'} max-w-[85%] items-start group">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center ${isUser ? 'ml-3' : 'mr-3'} mt-1 shadow-lg">
+                        <i class="fas ${icon} text-[10px] text-white"></i>
+                    </div>
+                    <div class="${isUser ? 'message-user' : 'message-bot'} px-5 py-3 rounded-2xl shadow-sm relative">
+                        <div class="${contentClass}">${displayContent}</div>
+                        ${!isUser ? `
+                        <div class="absolute -right-12 top-0 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button onclick="copyText(this)" class="p-2 hover:text-white text-slate-500 transition-colors"><i class="far fa-copy text-xs"></i></button>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            
+            // Apply syntax highlighting
+            if (!isUser) {
+                messageDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            requestAnimationFrame(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+        }
+
+        function quickPrompt(text) {
+            promptInput.value = text;
+            promptInput.dispatchEvent(new Event('input'));
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+
+        async function copyText(btn) {
+            const container = btn.closest('.group').querySelector('.message-bot > div');
+            const text = container.innerText;
+            await navigator.clipboard.writeText(text);
+            const icon = btn.querySelector('i');
+            icon.className = 'fas fa-check text-green-500 text-xs';
+            setTimeout(() => icon.className = 'far fa-copy text-xs', 2000);
+        }
+
+        async function fetchHistory() {
+            try {
+                const response = await fetch(`${API_URL}/requests`);
+                if (response.ok) {
+                    const history = await response.json();
+                    if (history.length > 0) {
+                        welcomeView.style.display = 'none';
+                        history.forEach(item => {
+                            appendMessage('user', item.prompt);
+                            appendMessage('bot', item.response);
+                            
+                            // Add to history sidebar
+                            const historyBtn = document.createElement('button');
+                            historyBtn.className = "w-full text-left p-3 rounded-xl hover:bg-white/5 text-sm text-slate-400 hover:text-white truncate transition-all flex items-center space-x-3";
+                            historyBtn.innerHTML = `<i class="far fa-message text-xs opacity-40"></i> <span>${item.prompt}</span>`;
+                            historyList.prepend(historyBtn);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('History load error:', error);
+            }
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            promptInput.value = '';
+            promptInput.style.height = 'auto';
+            promptInput.disabled = true;
+            sendBtn.disabled = true;
+
+            appendMessage('user', prompt);
+            typingIndicator.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_URL}/requests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) throw new Error('Server Error');
+
+                const data = await response.json();
+                appendMessage('bot', data.answer);
+                
+                // Refresh history sidebar item (optional)
+            } catch (error) {
+                appendMessage('bot', '❌ Ошибка соединения. Проверьте, запущен ли бэкенд на порту 8000.');
+            } finally {
+                typingIndicator.classList.add('hidden');
+                promptInput.disabled = false;
+                sendBtn.disabled = false;
+                promptInput.focus();
+            }
+        });
+
+        fetchHistory();
+    </script>
+</body>
+</html>
